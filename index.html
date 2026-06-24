@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Anka Marketing Team — Recommendation Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/htm/dist/htm.umd.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black:    #1A1A1A;
+      --terra:    #C4722A;
+      --bg:       #FAF8F5;
+      --surface:  #FFFFFF;
+      --border:   #E8E4DF;
+      --muted:    #6B6560;
+      --muted-lt: #A8A39D;
+
+      --inv-bg: #DBEAFE; --inv-fg: #1D4ED8;
+      --tst-bg: #DCFCE7; --tst-fg: #15803D;
+      --ana-bg: #EDE9FE; --ana-fg: #6D28D9;
+      --inf-bg: #FFEDD5; --inf-fg: #C2410C;
+
+      --pend-bg: #F3F4F6; --pend-fg: #374151;
+      --prog-bg: #FEF3C7; --prog-fg: #92400E;
+      --done-bg: #DCFCE7; --done-fg: #15803D;
+      --carr-bg: #FEE2E2; --carr-fg: #991B1B;
+    }
+
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--black); font-size: 14px; line-height: 1.5; }
+
+    /* ── Header ── */
+    .hdr { background: var(--black); padding: 0 32px; height: 54px; display: flex; align-items: center; gap: 14px; position: sticky; top: 0; z-index: 10; }
+    .hdr-logo { font-size: 17px; font-weight: 700; letter-spacing: .08em; color: var(--terra); text-transform: uppercase; white-space: nowrap; }
+    .hdr-sep  { width: 1px; height: 22px; background: rgba(255,255,255,.18); flex-shrink: 0; }
+    .hdr-sub  { font-size: 13px; font-weight: 500; color: rgba(255,255,255,.65); white-space: nowrap; }
+    .hdr-right { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .btn-refresh { background: none; border: 1px solid rgba(255,255,255,.2); border-radius: 6px; padding: 4px 12px; font-family: inherit; font-size: 12px; color: rgba(255,255,255,.65); cursor: pointer; transition: all .15s; white-space: nowrap; }
+    .btn-refresh:hover { background: rgba(255,255,255,.1); color: #fff; }
+    .sync-badge { font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
+    .sync-syncing { background: rgba(255,255,255,.08); color: rgba(255,255,255,.55); }
+    .sync-saved   { background: rgba(21,128,61,.25); color: #4ade80; }
+    .sync-local   { background: rgba(251,191,36,.15); color: #fbbf24; }
+
+    /* ── Local mode banner ── */
+    .local-banner { background: #FEF3C7; border-bottom: 1px solid #FCD34D; padding: 10px 32px; font-size: 13px; color: #78350F; display: flex; align-items: center; gap: 8px; }
+
+    /* ── Tabs ── */
+    .tab-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; }
+    .tab-btn { padding: 13px 18px; border: none; background: none; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .15s, border-color .15s; }
+    .tab-btn:hover { color: var(--black); }
+    .tab-btn.active { color: var(--black); border-bottom-color: var(--terra); }
+
+    /* ── Layout ── */
+    .main { max-width: 1140px; margin: 0 auto; padding: 32px 24px 72px; }
+    .loading-screen { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--muted-lt); font-size: 14px; }
+
+    /* ── Page header ── */
+    .pg-hdr { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 26px; }
+    .pg-title { font-size: 21px; font-weight: 700; }
+    .pg-meta  { font-size: 13px; color: var(--muted); margin-top: 3px; }
+    .week-sel { appearance: none; border: 1px solid var(--border); border-radius: 8px; padding: 8px 34px 8px 13px; font-family: inherit; font-size: 13px; font-weight: 500; background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%231A1A1A' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center; cursor: pointer; color: var(--black); flex-shrink: 0; }
+    .week-sel:focus { outline: 2px solid var(--terra); outline-offset: 2px; }
+
+    /* ── Stat pills ── */
+    .stats { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 28px; }
+    .stat  { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; min-width: 90px; }
+    .stat-n { font-size: 24px; font-weight: 700; line-height: 1; }
+    .stat-l { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-top: 4px; }
+
+    /* ── Owner section ── */
+    .owner-sec { margin-bottom: 32px; }
+    .owner-hdr { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .owner-av  { width: 34px; height: 34px; border-radius: 50%; background: var(--black); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+    .owner-nm  { font-size: 16px; font-weight: 600; }
+    .owner-ct  { font-size: 12px; color: var(--muted); background: var(--border); padding: 2px 9px; border-radius: 20px; }
+
+    /* ── Card / table ── */
+    .card  { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .tbl   { width: 100%; border-collapse: collapse; }
+    .tbl thead { background: #F9F7F4; }
+    .tbl th { padding: 9px 16px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .tbl tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    .tbl tbody tr:last-child { border-bottom: none; }
+    .tbl tbody tr:hover { background: #FDFCFA; }
+    .tbl td { padding: 12px 16px; vertical-align: top; }
+    .empty { text-align: center; padding: 48px 24px; color: var(--muted-lt); font-size: 14px; }
+
+    /* ── Delete column ── */
+    .del-col  { width: 36px; padding-left: 4px !important; padding-right: 8px !important; }
+    .del-btn  { opacity: 0; background: none; border: none; cursor: pointer; padding: 5px; color: var(--muted-lt); display: flex; align-items: center; border-radius: 4px; transition: opacity .15s, color .15s, background .1s; }
+    tr:hover .del-btn { opacity: 1; }
+    .del-btn:hover { color: var(--carr-fg); background: var(--carr-bg); }
+    .del-confirm { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+    .del-lbl { font-size: 12px; color: var(--muted); }
+    .del-yes { background: var(--carr-fg); color: #fff; border: none; border-radius: 4px; padding: 3px 9px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; transition: opacity .15s; }
+    .del-yes:hover { opacity: .85; }
+    .del-no  { background: none; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 3px 9px; font-size: 12px; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .del-no:hover { border-color: var(--black); color: var(--black); }
+    tr.row-confirming td { background: var(--carr-bg) !important; }
+
+    /* ── Badges ── */
+    .badge      { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 20px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+    .badge-wrap { display: flex; flex-wrap: wrap; gap: 4px; }
+    .b-inv { background: var(--inv-bg); color: var(--inv-fg); }
+    .b-tst { background: var(--tst-bg); color: var(--tst-fg); }
+    .b-ana { background: var(--ana-bg); color: var(--ana-fg); }
+    .b-inf { background: var(--inf-bg); color: var(--inf-fg); }
+
+    /* ── Status tag ── */
+    .stag { display: inline-flex; align-items: center; gap: 5px; padding: 4px 11px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: opacity .15s, transform .1s; white-space: nowrap; }
+    .stag:hover  { opacity: .82; }
+    .stag:active { transform: scale(.95); }
+    .s-pend { background: var(--pend-bg); color: var(--pend-fg); }
+    .s-prog { background: var(--prog-bg); color: var(--prog-fg); }
+    .s-done { background: var(--done-bg); color: var(--done-fg); }
+    .s-carr { background: var(--carr-bg); color: var(--carr-fg); }
+
+    /* ── Result cell ── */
+    .result-inp { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-family: inherit; font-size: 13px; background: var(--bg); color: var(--black); transition: border-color .15s; }
+    .result-inp:focus { outline: none; border-color: var(--terra); }
+    .result-txt { font-size: 13px; color: var(--muted); font-style: italic; cursor: pointer; line-height: 1.4; }
+    .result-txt:hover { color: var(--black); text-decoration: underline; text-underline-offset: 2px; }
+    .no-res { color: var(--border); font-size: 13px; }
+
+    /* ── Carried-over pill ── */
+    .co-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; color: var(--carr-fg); background: var(--carr-bg); padding: 2px 8px; border-radius: 10px; margin-top: 5px; }
+
+    /* ── Import section ── */
+    .import-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-top: 32px; overflow: hidden; }
+    .import-toggle { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; cursor: pointer; background: none; border: none; width: 100%; font-family: inherit; text-align: left; transition: background .1s; }
+    .import-toggle:hover { background: #F9F7F4; }
+    .import-toggle-title { font-size: 14px; font-weight: 600; color: var(--black); }
+    .import-chevron { font-size: 11px; color: var(--muted); transition: transform .2s; display: inline-block; }
+    .import-chevron.open { transform: rotate(180deg); }
+    .import-body { padding: 16px 24px 24px; border-top: 1px solid var(--border); }
+    .import-ta { width: 100%; min-height: 120px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-family: inherit; font-size: 13px; color: var(--black); background: var(--bg); resize: vertical; transition: border-color .15s; margin-bottom: 12px; }
+    .import-ta:focus { outline: none; border-color: var(--terra); }
+    .import-controls { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 12px; }
+    .import-field { display: flex; flex-direction: column; gap: 5px; }
+    .import-lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .import-inp { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-family: inherit; font-size: 14px; background: var(--surface); color: var(--black); transition: border-color .15s; }
+    .import-inp:focus { outline: none; border-color: var(--terra); }
+    .import-inp-week { width: 90px; }
+    .import-inp-key  { width: 240px; }
+    .btn-import { background: var(--terra); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity .15s; align-self: flex-end; white-space: nowrap; }
+    .btn-import:hover:not(:disabled) { opacity: .88; }
+    .btn-import:disabled { opacity: .38; cursor: default; }
+    .import-msg { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-top: 4px; line-height: 1.5; }
+    .import-msg-err  { background: var(--carr-bg); color: var(--carr-fg); }
+    .import-msg-info { background: var(--pend-bg); color: var(--pend-fg); }
+    .import-preview-header { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 10px; margin-top: 16px; }
+    .import-preview-list { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
+    .import-preview-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--surface); }
+    .import-preview-item:last-child { border-bottom: none; }
+    .import-preview-action { flex: 1; font-size: 13px; line-height: 1.4; }
+    .import-preview-badges { display: flex; gap: 4px; flex-wrap: wrap; flex-shrink: 0; }
+    .import-confirm-row { display: flex; gap: 10px; align-items: center; }
+    .btn-confirm-import { background: var(--black); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: background .15s; }
+    .btn-confirm-import:hover { background: var(--terra); }
+    .btn-cancel-import { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; font-family: inherit; font-size: 14px; color: var(--muted); cursor: pointer; transition: all .15s; }
+    .btn-cancel-import:hover { border-color: var(--black); color: var(--black); }
+
+    /* ── Add form ── */
+    .add-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-top: 32px; }
+    .add-title { font-size: 14px; font-weight: 600; margin-bottom: 18px; }
+    .f-row  { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .f-full { grid-template-columns: 1fr; }
+    .f-field { display: flex; flex-direction: column; gap: 6px; }
+    .f-lbl  { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .f-inp, .f-sel { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-family: inherit; font-size: 14px; background: var(--surface); color: var(--black); transition: border-color .15s; }
+    .f-inp:focus, .f-sel:focus { outline: none; border-color: var(--terra); }
+    .f-ta { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-family: inherit; font-size: 14px; background: var(--surface); min-height: 80px; resize: vertical; color: var(--black); transition: border-color .15s; }
+    .f-ta:focus { outline: none; border-color: var(--terra); }
+    .type-checks { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .type-checks label { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; user-select: none; }
+    .type-checks input { accent-color: var(--terra); width: 14px; height: 14px; cursor: pointer; }
+    .btn-add { background: var(--black); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: background .15s; margin-top: 4px; }
+    .btn-add:hover:not(:disabled) { background: var(--terra); }
+    .btn-add:disabled { opacity: .4; cursor: default; }
+
+    /* ── Filters ── */
+    .filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 24px; }
+    .flt-grp { display: flex; flex-direction: column; gap: 5px; }
+    .flt-lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .flt-sel { border: 1px solid var(--border); border-radius: 8px; padding: 7px 30px 7px 12px; font-family: inherit; font-size: 13px; background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%231A1A1A' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center; appearance: none; cursor: pointer; color: var(--black); }
+    .flt-sel:focus { outline: 2px solid var(--terra); outline-offset: 2px; }
+    .btn-clr { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 7px 14px; font-family: inherit; font-size: 13px; color: var(--muted); cursor: pointer; transition: all .15s; }
+    .btn-clr:hover { border-color: var(--black); color: var(--black); }
+
+    /* ── Responsive ── */
+    @media (max-width: 700px) {
+      .hdr { padding-left: 16px; padding-right: 16px; }
+      .tab-bar { padding: 0 16px; }
+      .main { padding: 20px 12px 64px; }
+      .f-row { grid-template-columns: 1fr; }
+      .stats { gap: 8px; }
+      .import-controls { flex-direction: column; align-items: stretch; }
+      .import-inp-key { width: 100%; }
+      .local-banner { padding: 10px 16px; }
+    }
+  </style>
+</head>
+<body>
+<div id="root"><p style="padding:40px;font-family:sans-serif;color:#9E9993">Loading…</p></div>
+
+e<script>
+(function () {
+  'use strict';
+
+  const { useState, useEffect } = React;
+  const html = htm.bind(React.createElement);
+
+  // ── Constants ──────────────────────────────────────────────────────
+  const STORAGE_KEY    = 'anka_recs_v1';
+  const ANTHROPIC_LS   = 'anka_anthropic_key';
+  const TYPES    = ['🔍 Investigate', '🧪 Test', '📊 Analysis', '🔧 Infra'];
+  const OWNERS   = ['Vanessa', 'Coco'];
+  const STATUSES = ['Pending', 'In Progress', 'Done', 'Carried Over'];
+
+  const TYPE_MAP = {
+    investigate: '🔍 Investigate',
+    test:        '🧪 Test',
+    analysis:    '📊 Analysis',
+    infra:       '🔧 Infra',
+  };
+  const CYCLE = { 'Pending': 'In Progress', 'In Progress': 'Done', 'Done': 'Carried Over', 'Carried Over': 'Pending' };
+  const S_CLS  = { 'Pending': 's-pend', 'In Progress': 's-prog', 'Done': 's-done', 'Carried Over': 's-carr' };
+  const S_ICON = { 'Pending': '○', 'In Progress': '◐', 'Done': '✓', 'Carried Over': '↻' };
+  const T_CLS  = { '🔍 Investigate': 'b-inv', '🧪 Test': 'b-tst', '📊 Analysis': 'b-ana', '🔧 Infra': 'b-inf' };
+
+  // ── Seed data ──────────────────────────────────────────────────────
+  const SEED = [
+    { id:'v1', week:'W25', owner:'Vanessa', type:['🧪 Test'],
+      action:'Instagram: Replicate ornoircrochet format (900+ organic likes, 10+ link requests). Post next Reel at 5–7PM using UK location and track against W25 spike.',
+      status:'Pending', result:'', createdAt:'2026-06-16' },
+    { id:'v2', week:'W25', owner:'Vanessa', type:['🧪 Test'],
+      action:'Instagram Stories: Add link sticker to at least one Story. 2,100 reach at 1% CTR = ~21 free site visits. Unrun since W23.',
+      status:'Pending', result:'', createdAt:'2026-06-16' },
+    { id:'v3', week:'W25', owner:'Vanessa', type:['🧪 Test'],
+      action:'Facebook: Continue seller reposts and in-app cross-posting for Stories. Test new Reels time slots. Add a direct link to next Reel or Story as link clicks hit 0.',
+      status:'Pending', result:'', createdAt:'2026-06-16' },
+    { id:'v4', week:'W25', owner:'Vanessa', type:['🔍 Investigate','🧪 Test'],
+      action:'Newsletter: Test a shorter French subject line (open rates lowest across all segments at 35–41%). Look into what made Australia Casual Summer hit 4.69% CTOR.',
+      status:'Pending', result:'', createdAt:'2026-06-16' },
+    { id:'v5', week:'W25', owner:'Vanessa', type:['🧪 Test'],
+      action:'TikTok: Keep video-only cadence and grow Stories posting. Run 2–3 keyword-optimised posts with explicit captions, unactioned since W23.',
+      status:'Pending', result:'', createdAt:'2026-06-16' },
+    { id:'c1', week:'W25', owner:'Coco', type:['🔍 Investigate'],
+      action:'Ask Vanessa to walk through how she identifies and replicates a spike, what variables she keeps vs changes.',
+      status:'Pending', result:'', createdAt:'2026-06-16' },
+    { id:'c2', week:'W25', owner:'Coco', type:['📊 Analysis'],
+      action:'Build weekly funnel tracker: Views to Profile Visits to New Follows for TikTok and Instagram, backfilled from W23.',
+      status:'Pending', result:'', createdAt:'2026-06-16' },
+    { id:'c3', week:'W25', owner:'Coco', type:['🔧 Infra'],
+      action:'Build Recommendation Tracker with Type, Owner, Status and Result columns for weekly follow-through.',
+      status:'Done', result:'Built as a standalone HTML app — now backed by Google Sheets for shared state.', createdAt:'2026-06-16' },
+    { id:'c4', week:'W25', owner:'Coco', type:['🔧 Infra'],
+      action:'Connect GA4 to Looker Studio. Add placeholder tiles for Meta and TikTok pending API.',
+      status:'Pending', result:'', createdAt:'2026-06-16' },
+    { id:'c5', week:'W25', owner:'Coco', type:['📊 Analysis'],
+      action:'Pull TikTok retention curves, one legacy high-performer vs one W25 post, to diagnose the content-to-follow funnel drop.',
+      status:'Pending', result:'', createdAt:'2026-06-16' },
+    { id:'c6', week:'W25', owner:'Coco', type:['🔧 Infra'],
+      action:'Meta and TikTok API connection (permission received).',
+      status:'Pending', result:'', createdAt:'2026-06-16' },
+  ];
+
+  // ── Local storage helpers ──────────────────────────────────────────
+  const wNum      = function(w) { return parseInt((w || '').replace('W',''), 10) || 0; };
+  const uid       = function() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); };
+  const loadLocal = function() { try { var d = localStorage.getItem(STORAGE_KEY); return d ? JSON.parse(d) : null; } catch(e) { return null; } };
+  const saveLocal = function(d) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch(e) {} };
+  const cleanRec  = function(r) { var c = Object.assign({}, r); delete c._row; return c; };
+
+  // ── Backend config ────────────────────────────────────────────────
+  // Step 1: Deploy the Apps Script web app (see instructions in the HTML comments below).
+  // Step 2: Paste the deployment URL into WEB_APP_URL below.
+  // When WEB_APP_URL is set, all reads AND writes go through the Apps Script.
+  // When blank, the app falls back to the direct Sheets API (read-only via API key).
+
+  var CONFIG = {
+    WEB_APP_URL:    'https://script.google.com/macros/s/AKfycbxd3uISoBsrlyDNdtKzMn4ZSzZ4jk5k50INqHZaRktisq3ROhoWkttXvGYdHHMFqBTzVA/exec',  // ← paste your Apps Script /exec URL here after deploying
+    SHEETS_ID:      '1BNVjU8UuOwu5iQP9JDUUO2iH_6IbncqKjST_iPL5xgI',
+    GOOGLE_API_KEY: 'AIzaSyD0cn2Ppu-UosrRO8xlx3lG9q49avEh_z8',
+    SHEET_NAME:     'Recommendations',
+  };
+
+  /*
+  ════════════════════════════════════════════════════════════════════
+  APPS SCRIPT SETUP (one-time, ~5 minutes)
+  ════════════════════════════════════════════════════════════════════
+  The Google Sheets API requires OAuth2 for all write operations.
+  The workaround is a Google Apps Script web app that runs as YOU
+  (the sheet owner) server-side — no OAuth required from the browser.
+
+  1. Open your spreadsheet → Extensions → Apps Script
+  2. Delete any existing code and paste this entire block:
+
+  ── paste start ──────────────────────────────────────────────────
+  var SHEET_NAME = 'Recommendations';
+
+  function doGet(e) {
+    try {
+      var action = (e.parameter && e.parameter.action) || 'load';
+      var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+      if (!sheet) return respond(e, {error: 'Sheet "' + SHEET_NAME + '" not found'});
+      if (action === 'load')   return respond(e, handleLoad(sheet));
+      if (action === 'add')    return respond(e, handleAdd(sheet,   JSON.parse(e.parameter.data)));
+      if (action === 'update') return respond(e, handleUpdate(sheet, JSON.parse(e.parameter.data)));
+      if (action === 'delete') return respond(e, handleDelete(sheet, e.parameter.id));
+      return respond(e, {error: 'Unknown action: ' + action});
+    } catch(err) { return respond(e, {error: err.toString()}); }
+  }
+
+  function respond(e, data) {
+    var cb = e.parameter && e.parameter.callback;
+    return ContentService
+      .createTextOutput(cb ? cb + '(' + JSON.stringify(data) + ')' : JSON.stringify(data))
+      .setMimeType(cb ? ContentService.MimeType.JAVASCRIPT : ContentService.MimeType.JSON);
+  }
+
+  function handleLoad(sheet) {
+    var vals = sheet.getDataRange().getValues();
+    return vals.slice(1).filter(function(r){return r[0];}).map(function(r){
+      return {id:String(r[0]),week:String(r[1]),owner:String(r[2]),action:String(r[3]),
+              type:String(r[4]).split(',').map(function(t){return t.trim();}).filter(Boolean),
+              status:String(r[5])||'Pending',result:String(r[6]),createdAt:String(r[7])};
+    });
+  }
+
+  function handleAdd(sheet, rec) {
+    sheet.appendRow([rec.id,rec.week,rec.owner,rec.action,
+                     (rec.type||[]).join(','),rec.status||'Pending',rec.result||'',rec.createdAt||'']);
+    return {ok:true};
+  }
+
+  function handleUpdate(sheet, rec) {
+    var vals = sheet.getDataRange().getValues();
+    for (var i=1;i<vals.length;i++) {
+      if (String(vals[i][0])===String(rec.id)) {
+        sheet.getRange(i+1,1,1,8).setValues([[rec.id,rec.week,rec.owner,rec.action,
+          (rec.type||[]).join(','),rec.status||'Pending',rec.result||'',rec.createdAt||'']]);
+        return {ok:true};
+      }
+    }
+    return {error:'Row not found: '+rec.id};
+  }
+
+  function handleDelete(sheet, id) {
+    var vals = sheet.getDataRange().getValues();
+    for (var i=1;i<vals.length;i++) {
+      if (String(vals[i][0])===String(id)) { sheet.deleteRow(i+1); return {ok:true}; }
+    }
+    return {error:'Row not found: '+id};
+  }
+  ── paste end ────────────────────────────────────────────────────
+
+  3. Click Deploy → Manage Deployments → edit the existing one → New Version → Deploy
+     (URL stays the same — no need to update WEB_APP_URL)
+  4. If deploying fresh: Deploy → New deployment, Execute as: Me, Who has access: Anyone
+
+  Make sure the "Recommendations" sheet tab has row 1 as headers:
+  id | week | owner | action | type | status | result | createdAt
+  ════════════════════════════════════════════════════════════════════
+  */
+
+  // ── Apps Script backend (JSONP — bypasses CORS entirely) ────────
+  // JSONP loads the response as a <script> tag, so no CORS headers are needed.
+  // Works from localhost, file://, or any origin.
+  function gasRequest(params) {
+    return new Promise(function(resolve, reject) {
+      var cbName = '_gas_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      var script = document.createElement('script');
+      var settled = false;
+
+      function cleanup() {
+        settled = true;
+        delete window[cbName];
+        if (script.parentNode) script.parentNode.removeChild(script);
+      }
+
+      var timer = setTimeout(function() {
+        if (!settled) {
+          cleanup();
+          reject(new Error('Request timed out after 15s — check Apps Script URL'));
+        }
+      }, 15000);
+
+      window[cbName] = function(data) {
+        clearTimeout(timer);
+        cleanup();
+        if (data && data.error) reject(new Error('Script error: ' + data.error));
+        else resolve(data);
+      };
+
+      script.onerror = function() {
+        clearTimeout(timer);
+        cleanup();
+        reject(new Error('Could not load Apps Script URL — check CONFIG.WEB_APP_URL'));
+      };
+
+      params.callback = cbName;
+      var qs = Object.keys(params).map(function(k) {
+        return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+      }).join('&');
+      script.src = CONFIG.WEB_APP_URL + '?' + qs;
+      document.head.appendChild(script);
+    });
+  }
+
+  function gasLoad()        { return gasRequest({ action: 'load' }); }
+  function gasAdd(rec)      { return gasRequest({ action: 'add',    data: JSON.stringify(cleanRec(rec)) }); }
+  function gasUpdate(rec)   { return gasRequest({ action: 'update', data: JSON.stringify(cleanRec(rec)) }); }
+  function gasRemove(id)    { return gasRequest({ action: 'delete', id: id }); }
+
+  // ── Direct Sheets API (fallback — reads only, writes will 403) ────
+  // TODO: migrate to Service Account (Option B) for production security.
+  var SHEETS_BASE   = 'https://sheets.googleapis.com/v4/spreadsheets/' + CONFIG.SHEETS_ID;
+  var _cachedSheetId = null;
+
+  function rowToRec(row) {
+    return {
+      id:        (row[0] || '').trim(),
+      week:      (row[1] || '').trim(),
+      owner:     (row[2] || '').trim(),
+      action:    (row[3] || '').trim(),
+      type:      (row[4] || '').split(',').map(function(t) { return t.trim(); }).filter(Boolean),
+      status:    (row[5] || 'Pending').trim(),
+      result:    (row[6] || '').trim(),
+      createdAt: (row[7] || '').trim(),
+    };
+  }
+
+  function recToRow(rec) {
+    return [rec.id||'', rec.week||'', rec.owner||'', rec.action||'',
+            (rec.type||[]).join(','), rec.status||'Pending', rec.result||'', rec.createdAt||''];
+  }
+
+  function sheetsLoad() {
+    var range = encodeURIComponent(CONFIG.SHEET_NAME + '!A2:H');
+    var url   = SHEETS_BASE + '/values/' + range + '?key=' + CONFIG.GOOGLE_API_KEY;
+    return fetch(url)
+      .then(function(res) {
+        if (!res.ok) return res.json().then(function(e) { throw new Error((e.error&&e.error.message)||'Sheets read failed: '+res.status); });
+        return res.json();
+      })
+      .then(function(data) {
+        return (data.values||[]).filter(function(r){return r[0];}).map(function(row,i) {
+          var rec = rowToRec(row); rec._row = i + 2; return rec;
+        });
+      });
+  }
+
+  function sheetsAppend(rec) {
+    var range = encodeURIComponent(CONFIG.SHEET_NAME + '!A:H');
+    var url   = SHEETS_BASE + '/values/' + range + ':append?valueInputOption=RAW&insertDataOption=INSERT_ROWS&key=' + CONFIG.GOOGLE_API_KEY;
+    return fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({values:[recToRow(rec)]}) })
+      .then(function(res) { if (!res.ok) return res.json().then(function(e) { throw new Error((e.error&&e.error.message)||'Sheets append failed: '+res.status); }); });
+  }
+
+  function sheetsUpdate(rec) {
+    return sheetsLoad().then(function(rows) {
+      var found = rows.find(function(r) { return r.id === rec.id; });
+      if (!found) throw new Error('Row not found for id: ' + rec.id);
+      var rn    = found._row;
+      var range = encodeURIComponent(CONFIG.SHEET_NAME + '!A' + rn + ':H' + rn);
+      var url   = SHEETS_BASE + '/values/' + range + '?valueInputOption=RAW&key=' + CONFIG.GOOGLE_API_KEY;
+      return fetch(url, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({values:[recToRow(rec)]}) });
+    }).then(function(res) { if (res&&!res.ok) return res.json().then(function(e) { throw new Error((e.error&&e.error.message)||'Sheets update failed: '+res.status); }); });
+  }
+
+  function getSheetId() {
+    if (_cachedSheetId !== null) return Promise.resolve(_cachedSheetId);
+    return fetch(SHEETS_BASE + '?key=' + CONFIG.GOOGLE_API_KEY + '&fields=sheets.properties')
+      .then(function(res) { if (!res.ok) throw new Error('Metadata fetch failed'); return res.json(); })
+      .then(function(meta) {
+        var info = (meta.sheets||[]).find(function(s) { return s.properties.title === CONFIG.SHEET_NAME; });
+        if (!info) throw new Error('Sheet "' + CONFIG.SHEET_NAME + '" not found');
+        _cachedSheetId = info.properties.sheetId;
+        return _cachedSheetId;
+      });
+  }
+
+  function sheetsRemove(id) {
+    return Promise.all([getSheetId(), sheetsLoad()]).then(function(r) {
+      var sheetId = r[0], rows = r[1];
+      var found   = rows.find(function(r2) { return r2.id === id; });
+      if (!found) throw new Error('Row not found for id: ' + id);
+      var idx = found._row - 1;
+      return fetch(SHEETS_BASE + ':batchUpdate?key=' + CONFIG.GOOGLE_API_KEY, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ requests: [{ deleteDimension: { range: { sheetId:sheetId, dimension:'ROWS', startIndex:idx, endIndex:idx+1 } } }] }),
+      });
+    }).then(function(res) { if (res&&!res.ok) return res.json().then(function(e) { throw new Error((e.error&&e.error.message)||'Sheets delete failed: '+res.status); }); });
+  }
+
+  // Swappable backend — set WEB_APP_URL to use Apps Script (full read/write).
+  // Leave WEB_APP_URL blank to use direct Sheets API (reads only).
+  var db = CONFIG.WEB_APP_URL
+    ? { load: gasLoad, add: gasAdd, update: gasUpdate, remove: gasRemove }
+    : { load: sheetsLoad, add: sheetsAppend, update: sheetsUpdate, remove: sheetsRemove };
+
+  // ── Anthropic import parser ────────────────────────────────────────
+  var PARSE_SYSTEM = [
+    'You are a data parser. Extract recommendations from the pasted marketing report',
+    'text. Return ONLY a JSON array, no markdown, no explanation. Each item must have:',
+    '- action: string',
+    "- type: one of 'investigate', 'test', 'analysis', 'infra'",
+    "- owner: 'Vanessa' or 'Coco'",
+    '',
+    'If type is ambiguous, infer from context:',
+    'investigate = research/find out/identify,',
+    'test = try/run/add/post,',
+    'analysis = build tracker/pull data/analyse,',
+    'infra = connect/build system/API/setup',
+  ].join('\n');
+
+  function parseWithClaude(text, apiKey) {
+    return fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2048, system: PARSE_SYSTEM,
+                             messages: [{ role: 'user', content: text }] }),
+    })
+    .then(function(res) {
+      if (!res.ok) return res.json().then(function(e) { throw new Error((e.error&&e.error.message)||'API error: '+res.status); });
+      return res.json();
+    })
+    .then(function(data) {
+      var raw = data.content[0].text;
+      var cleaned = raw.replace(/^```(?:json)?\s*/m,'').replace(/\s*```\s*$/m,'').trim();
+      var parsed;
+      try { parsed = JSON.parse(cleaned); } catch(e) { throw new Error('Could not parse recommendations. Try the manual form below.'); }
+      if (!Array.isArray(parsed)) {
+        var keys = Object.keys(parsed);
+        for (var i=0;i<keys.length;i++) { if (Array.isArray(parsed[keys[i]])) { parsed=parsed[keys[i]]; break; } }
+        if (!Array.isArray(parsed)) throw new Error('Could not parse recommendations. Try the manual form below.');
+      }
+      return parsed.map(function(item) {
+        return {
+          action: String(item.action||'').trim(),
+          type:   [TYPE_MAP[(String(item.type||'')).toLowerCase()] || '🧪 Test'],
+          owner:  (item.owner==='Coco'||item.owner==='Vanessa') ? item.owner : 'Vanessa',
+        };
+      }).filter(function(item) { return item.action.length > 0; });
+    });
+  }
+
+  // ── Tiny SVG icons ─────────────────────────────────────────────────
+  function TrashIcon() {
+    return html`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m5 0V4a2 2 0 012-2h2a2 2 0 012 2v2"></path>
+    </svg>`;
+  }
+
+  // ── TypeBadge ──────────────────────────────────────────────────────
+  function TypeBadge(props) {
+    return html`<span className=${'badge ' + (T_CLS[props.t]||'b-inv')}>${props.t}</span>`;
+  }
+
+  // ── StatusTag ──────────────────────────────────────────────────────
+  function StatusTag(props) {
+    return html`<button className=${'stag '+S_CLS[props.status]} onClick=${props.onClick} title="Click to advance status">
+      <span aria-hidden="true">${S_ICON[props.status]}</span> ${props.status}
+    </button>`;
+  }
+
+  // ── SyncBadge ──────────────────────────────────────────────────────
+  function SyncBadge(props) {
+    var s = props.status;
+    if (s === 'syncing') return html`<span className="sync-badge sync-syncing">Syncing…</span>`;
+    if (s === 'saved')   return html`<span className="sync-badge sync-saved">Saved ✓</span>`;
+    if (s === 'local')   return html`<span className="sync-badge sync-local">⚠ Local mode</span>`;
+    return null;
+  }
+
+  // ── RecRow ─────────────────────────────────────────────────────────
+  function RecRow(props) {
+    var rec=props.rec, onStatus=props.onStatus, onResult=props.onResult, onDelete=props.onDelete,
+        showWeek=props.showWeek, showOwner=props.showOwner, carriedFrom=props.carriedFrom;
+
+    var editSt = useState(false); var editing=editSt[0],setEditing=editSt[1];
+    var confSt = useState(false); var confirming=confSt[0],setConfirming=confSt[1];
+
+    var showInput = rec.status === 'Done' && (!rec.result || editing);
+
+    function handleStatus() {
+      var next = CYCLE[rec.status];
+      if (next === 'Done') setEditing(true);
+      onStatus(rec.id, next);
+    }
+    function handleBlur(e) { onResult(rec.id, e.target.value.trim()); setEditing(false); }
+
+    var weekCell  = showWeek  ? html`<td style=${{fontSize:12,color:'var(--muted)',fontWeight:600,whiteSpace:'nowrap'}}>${rec.week}</td>` : null;
+    var ownerCell = showOwner ? html`<td style=${{fontSize:13,fontWeight:500,whiteSpace:'nowrap'}}>${rec.owner}</td>` : null;
+    var carried   = carriedFrom ? html`<div className="co-pill">↻ carried from ${carriedFrom}</div>` : null;
+    var badges    = rec.type.map(function(t) { return html`<${TypeBadge} key=${t} t=${t} />`; });
+
+    var resultCell;
+    if (showInput) {
+      resultCell = html`<input className="result-inp" key=${rec.id+'-inp'} defaultValue=${rec.result}
+        placeholder="One-sentence result…" autoFocus=${true}
+        onBlur=${handleBlur} onKeyDown=${function(e){if(e.key==='Enter')e.target.blur();}} />`;
+    } else if (rec.result) {
+      resultCell = html`<span className="result-txt"
+        onClick=${function(){if(rec.status==='Done')setEditing(true);}}
+        title=${rec.status==='Done'?'Click to edit':''}>${rec.result}</span>`;
+    } else {
+      resultCell = html`<span className="no-res">—</span>`;
+    }
+
+    var delCell = confirming
+      ? html`<td className="del-col">
+          <div className="del-confirm">
+            <span className="del-lbl">Remove?</span>
+            <button className="del-yes" onClick=${function(){onDelete(rec.id);}}>Yes</button>
+            <button className="del-no"  onClick=${function(){setConfirming(false);}}>No</button>
+          </div>
+        </td>`
+      : html`<td className="del-col">
+          <button className="del-btn" onClick=${function(){setConfirming(true);}} title="Delete">
+            <${TrashIcon} />
+          </button>
+        </td>`;
+
+    return html`<tr className=${confirming?'row-confirming':''}>
+      ${weekCell}${ownerCell}
+      <td>
+        <div style=${{fontSize:14,lineHeight:1.5}}>${rec.action}</div>
+        ${carried}
+      </td>
+      <td><div className="badge-wrap">${badges}</div></td>
+      <td><${StatusTag} status=${rec.status} onClick=${handleStatus} /></td>
+      <td>${resultCell}</td>
+      ${delCell}
+    </tr>`;
+  }
+
+  // ── ImportSection ──────────────────────────────────────────────────
+  function ImportSection(props) {
+    var weeks=props.weeks, currentWeek=props.currentWeek, onImport=props.onImport;
+
+    var openSt   = useState(false);    var open=openSt[0],setOpen=openSt[1];
+    var textSt   = useState('');       var text=textSt[0],setText=textSt[1];
+    var weekSt   = useState(currentWeek||'W26'); var week=weekSt[0],setWeek=weekSt[1];
+    var keySt    = useState(function(){return localStorage.getItem(ANTHROPIC_LS)||'';});
+    var apiKey=keySt[0],setApiKey=keySt[1];
+    var statusSt = useState('idle');   var status=statusSt[0],setStatus=statusSt[1];
+    var parsedSt = useState([]);       var parsed=parsedSt[0],setParsed=parsedSt[1];
+    var errSt    = useState('');       var err=errSt[0],setErr=errSt[1];
+
+    function saveKey(k) { setApiKey(k); try{localStorage.setItem(ANTHROPIC_LS,k);}catch(e){} }
+
+    function handleImport() {
+      if (!text.trim()) return;
+      if (!apiKey.trim()) { setErr('Enter your Anthropic API key to use AI import.'); setStatus('error'); return; }
+      setStatus('parsing'); setErr('');
+      parseWithClaude(text.trim(), apiKey.trim())
+        .then(function(items) {
+          if (!items.length) throw new Error('No recommendations found in the pasted text.');
+          setParsed(items); setStatus('preview');
+        })
+        .catch(function(e) {
+          var msg = e.message||'Unknown error';
+          if (/fetch|network|cors/i.test(msg)) {
+            msg = 'Cannot reach Anthropic API from the browser (CORS restriction). ' +
+                  'If this persists, paste the text into Claude directly and use the manual form below.';
+          }
+          setErr(msg); setStatus('error');
+        });
+    }
+
+    function handleConfirm() {
+      var w = week.trim().toUpperCase();
+      if (!/^W\d+$/.test(w)) { var n=parseInt(w.replace(/\D/g,''),10); w = isNaN(n)?'W26':'W'+n; }
+      onImport(parsed, w);
+      setParsed([]); setText(''); setStatus('idle'); setErr(''); setOpen(false);
+    }
+    function handleCancel() { setParsed([]); setStatus('idle'); setErr(''); }
+
+    var weekOptions = weeks.map(function(w){return html`<option key=${w} value=${w}>${w}</option>`;});
+    var listId = 'imp-wl';
+
+    var body = null;
+    if (open) {
+      var msgEl = null;
+      if (status === 'error')   msgEl = html`<div className="import-msg import-msg-err">${err}</div>`;
+      if (status === 'parsing') msgEl = html`<div className="import-msg import-msg-info">Parsing with Claude…</div>`;
+
+      var previewEl = null;
+      if (status === 'preview' && parsed.length) {
+        var items = parsed.map(function(item, i) {
+          return html`<div key=${i} className="import-preview-item">
+            <div className="import-preview-action">${item.action}</div>
+            <div className="import-preview-badges">
+              ${item.type.map(function(t){return html`<${TypeBadge} key=${t} t=${t} />`;})}
+              <span className="badge" style=${{background:'var(--pend-bg)',color:'var(--pend-fg)'}}>${item.owner}</span>
+            </div>
+          </div>`;
+        });
+        previewEl = html`<div className="import-preview">
+          <div className="import-preview-header">${parsed.length} recommendation${parsed.length===1?'':'s'} found</div>
+          <div className="import-preview-list">${items}</div>
+          <div className="import-confirm-row">
+            <button className="btn-confirm-import" onClick=${handleConfirm}>
+              + Add ${parsed.length} recommendation${parsed.length===1?'':'s'}
+            </button>
+            <button className="btn-cancel-import" onClick=${handleCancel}>Cancel</button>
+          </div>
+        </div>`;
+      }
+
+      body = html`<div className="import-body">
+        <textarea className="import-ta"
+          value=${text}
+          onInput=${function(e){setText(e.target.value);}}
+          placeholder="Paste your recommendations table here (e.g. from your weekly report)…"
+        ></textarea>
+        <div className="import-controls">
+          <div className="import-field">
+            <label className="import-lbl">Week</label>
+            <input className="import-inp import-inp-week" list=${listId}
+              value=${week} onChange=${function(e){setWeek(e.target.value);}} placeholder="W26" />
+            <datalist id=${listId}>${weekOptions}</datalist>
+          </div>
+          <div className="import-field">
+            <label className="import-lbl">Anthropic API Key</label>
+            <input className="import-inp import-inp-key" type="password"
+              value=${apiKey} onInput=${function(e){saveKey(e.target.value);}}
+              placeholder="sk-ant-…" autocomplete="off" />
+          </div>
+          <button className="btn-import" onClick=${handleImport}
+            disabled=${!text.trim()||status==='parsing'}>
+            ${status==='parsing'?'Parsing…':'Import'}
+          </button>
+        </div>
+        ${msgEl}
+        ${previewEl}
+      </div>`;
+    }
+
+    return html`<div className="import-card">
+      <button className="import-toggle" onClick=${function(){setOpen(function(o){return !o;});}}>
+        <span className="import-toggle-title">+ Import Week's Recommendations</span>
+        <span className=${'import-chevron'+(open?' open':'')} aria-hidden="true">▼</span>
+      </button>
+      ${body}
+    </div>`;
+  }
+
+  // ── AddForm ────────────────────────────────────────────────────────
+  function AddForm(props) {
+    var weeks=props.weeks, onAdd=props.onAdd, instanceId=props.instanceId;
+    var fSt=useState({week:weeks[0]||'W25',action:'',type:['🧪 Test'],owner:'Vanessa'});
+    var form=fSt[0],setForm=fSt[1];
+
+    function toggleType(t) {
+      setForm(function(f){var next=f.type.includes(t)?f.type.filter(function(x){return x!==t;}):f.type.concat([t]);return Object.assign({},f,{type:next});});
+    }
+    function submit(e) {
+      e.preventDefault();
+      if (!form.action.trim()||!form.type.length) return;
+      var w=form.week.trim().toUpperCase();
+      if (!/^W\d+$/.test(w)){var n=parseInt(w.replace(/\D/g,''),10);if(isNaN(n))return;w='W'+n;}
+      onAdd(Object.assign({},form,{week:w,action:form.action.trim()}));
+      setForm(function(f){return Object.assign({},f,{action:'',type:['🧪 Test']});});
+    }
+
+    var lid = 'wl-'+instanceId;
+    var can = form.action.trim().length > 0 && form.type.length > 0;
+    var wOpts = weeks.map(function(w){return html`<option key=${w} value=${w}>${w}</option>`;});
+    var oOpts = OWNERS.map(function(o){return html`<option key=${o}>${o}</option>`;});
+    var checks = TYPES.map(function(t){return html`<label key=${t}>
+      <input type="checkbox" checked=${form.type.includes(t)} onChange=${function(){toggleType(t);}} />${t}
+    </label>`;});
+
+    return html`<div className="add-card">
+      <div className="add-title">+ Add Recommendation</div>
+      <form onSubmit=${submit}>
+        <div className="f-row">
+          <div className="f-field">
+            <label className="f-lbl">Week</label>
+            <input className="f-inp" list=${lid} value=${form.week}
+              onChange=${function(e){setForm(function(f){return Object.assign({},f,{week:e.target.value});});}} placeholder="W26" />
+            <datalist id=${lid}>${wOpts}</datalist>
+          </div>
+          <div className="f-field">
+            <label className="f-lbl">Owner</label>
+            <select className="f-sel" value=${form.owner} onChange=${function(e){setForm(function(f){return Object.assign({},f,{owner:e.target.value});});}}>${oOpts}</select>
+          </div>
+          <div className="f-field">
+            <label className="f-lbl">Type</label>
+            <div className="type-checks">${checks}</div>
+          </div>
+        </div>
+        <div className="f-row f-full">
+          <div className="f-field">
+            <label className="f-lbl">Action</label>
+            <textarea className="f-ta" value=${form.action}
+              onInput=${function(e){setForm(function(f){return Object.assign({},f,{action:e.target.value});});}}
+              placeholder="Describe the recommendation…" required></textarea>
+          </div>
+        </div>
+        <button type="submit" className="btn-add" disabled=${!can}>Add Recommendation</button>
+      </form>
+    </div>`;
+  }
+
+  // ── ThisWeekTab ────────────────────────────────────────────────────
+  function ThisWeekTab(props) {
+    var recs=props.recs, weeks=props.weeks, curWeek=props.curWeek, setCurWeek=props.setCurWeek,
+        onStatus=props.onStatus, onResult=props.onResult, onDelete=props.onDelete,
+        onAdd=props.onAdd, onImport=props.onImport;
+
+    var wr=recs.filter(function(r){return r.week===curWeek;});
+    var total=wr.length, done=wr.filter(function(r){return r.status==='Done';}).length,
+        inprog=wr.filter(function(r){return r.status==='In Progress';}).length,
+        pend=wr.filter(function(r){return r.status==='Pending';}).length;
+
+    var statItems=[{n:total,l:'Total',c:'var(--black)'},{n:pend,l:'Pending',c:'var(--pend-fg)'},
+                   {n:inprog,l:'In Progress',c:'var(--prog-fg)'},{n:done,l:'Done',c:'var(--done-fg)'}];
+
+    var wOpts = weeks.map(function(w){return html`<option key=${w}>${w}</option>`;});
+    var stats = statItems.map(function(s){return html`<div key=${s.l} className="stat">
+      <div className="stat-n" style=${{color:s.c}}>${s.n}</div>
+      <div className="stat-l">${s.l}</div>
+    </div>`;});
+
+    var sections = OWNERS.map(function(owner) {
+      var mine    = recs.filter(function(r){return r.owner===owner&&r.week===curWeek;});
+      var carried = recs.filter(function(r){return r.owner===owner&&r.status==='Carried Over'&&r.week!==curWeek&&wNum(r.week)<wNum(curWeek);});
+      var all     = mine.concat(carried);
+
+      var mRows = mine.map(function(r){return html`<${RecRow} key=${r.id} rec=${r} onStatus=${onStatus} onResult=${onResult} onDelete=${onDelete} />`;});
+      var cRows = carried.map(function(r){return html`<${RecRow} key=${r.id} rec=${r} onStatus=${onStatus} onResult=${onResult} onDelete=${onDelete} carriedFrom=${r.week} />`;});
+
+      var body = all.length === 0
+        ? html`<div style=${{color:'var(--muted)',paddingLeft:44,fontSize:14}}>No items this week.</div>`
+        : html`<div className="card"><table className="tbl">
+            <thead><tr>
+              <th style=${{width:'44%'}}>Action</th>
+              <th style=${{width:'18%'}}>Type</th>
+              <th style=${{width:'14%'}}>Status</th>
+              <th style=${{width:'20%'}}>Result</th>
+              <th className="del-col"></th>
+            </tr></thead>
+            <tbody>${mRows}${cRows}</tbody>
+          </table></div>`;
+
+      return html`<div key=${owner} className="owner-sec">
+        <div className="owner-hdr">
+          <div className="owner-av">${owner[0]}</div>
+          <span className="owner-nm">${owner}</span>
+          <span className="owner-ct">${all.length}</span>
+        </div>
+        ${body}
+      </div>`;
+    });
+
+    return html`<div>
+      <div className="pg-hdr">
+        <div>
+          <div className="pg-title">${curWeek} — This Week</div>
+          <div className="pg-meta">${done}/${total} done · ${inprog} in progress · ${pend} pending</div>
+        </div>
+        <select className="week-sel" value=${curWeek} onChange=${function(e){setCurWeek(e.target.value);}}>
+          ${wOpts}
+        </select>
+      </div>
+      <div className="stats">${stats}</div>
+      ${sections}
+      <${ImportSection} weeks=${weeks} currentWeek=${curWeek} onImport=${onImport} />
+      <${AddForm} weeks=${weeks} onAdd=${onAdd} instanceId="tw" />
+    </div>`;
+  }
+
+  // ── AllRecsTab ─────────────────────────────────────────────────────
+  function AllRecsTab(props) {
+    var recs=props.recs, weeks=props.weeks,
+        onStatus=props.onStatus, onResult=props.onResult, onDelete=props.onDelete,
+        onAdd=props.onAdd, onImport=props.onImport;
+
+    var fSt=useState({week:'All',owner:'All',type:'All',status:'All'});
+    var filt=fSt[0],setFilt=fSt[1];
+    function setKey(k){return function(e){var v=e.target.value;setFilt(function(f){return Object.assign({},f,{[k]:v});});};}
+
+    var shown = recs
+      .filter(function(r){
+        if(filt.week!=='All'&&r.week!==filt.week) return false;
+        if(filt.owner!=='All'&&r.owner!==filt.owner) return false;
+        if(filt.type!=='All'&&!r.type.includes(filt.type)) return false;
+        if(filt.status!=='All'&&r.status!==filt.status) return false;
+        return true;
+      })
+      .sort(function(a,b){var d=wNum(b.week)-wNum(a.week);return d||OWNERS.indexOf(a.owner)-OWNERS.indexOf(b.owner);});
+
+    var active = Object.values(filt).some(function(v){return v!=='All';});
+    var defs = [{key:'week',label:'Week',opts:['All'].concat(weeks)},{key:'owner',label:'Owner',opts:['All'].concat(OWNERS)},
+                {key:'type',label:'Type',opts:['All'].concat(TYPES)},{key:'status',label:'Status',opts:['All'].concat(STATUSES)}];
+
+    var filters = defs.map(function(f){return html`<div key=${f.key} className="flt-grp">
+      <label className="flt-lbl">${f.label}</label>
+      <select className="flt-sel" value=${filt[f.key]} onChange=${setKey(f.key)}>
+        ${f.opts.map(function(o){return html`<option key=${o}>${o}</option>`;})}
+      </select>
+    </div>`;});
+
+    var clearBtn = active ? html`<button className="btn-clr" onClick=${function(){setFilt({week:'All',owner:'All',type:'All',status:'All'});}}>Clear filters</button>` : null;
+
+    var rows = shown.map(function(r){return html`<${RecRow} key=${r.id} rec=${r}
+      onStatus=${onStatus} onResult=${onResult} onDelete=${onDelete} showWeek=${true} showOwner=${true} />`;});
+
+    var tableBody = shown.length===0
+      ? html`<div className="empty">No recommendations match your filters.</div>`
+      : html`<table className="tbl"><thead><tr>
+          <th style=${{width:'5%'}}>Week</th>
+          <th style=${{width:'7%'}}>Owner</th>
+          <th style=${{width:'38%'}}>Action</th>
+          <th style=${{width:'16%'}}>Type</th>
+          <th style=${{width:'13%'}}>Status</th>
+          <th style=${{width:'17%'}}>Result</th>
+          <th className="del-col"></th>
+        </tr></thead><tbody>${rows}</tbody></table>`;
+
+    return html`<div>
+      <div className="pg-hdr">
+        <div>
+          <div className="pg-title">All Recommendations</div>
+          <div className="pg-meta">${shown.length} of ${recs.length} shown</div>
+        </div>
+      </div>
+      <div className="filters">${filters}${clearBtn}</div>
+      <div className="card">${tableBody}</div>
+      <${ImportSection} weeks=${weeks} currentWeek=${weeks[0]||'W26'} onImport=${onImport} />
+      <${AddForm} weeks=${weeks} onAdd=${onAdd} instanceId="ar" />
+    </div>`;
+  }
+
+  // ── App ────────────────────────────────────────────────────────────
+  function App() {
+    var recsSt    = useState([]);    var recs=recsSt[0],setRecs=recsSt[1];
+    var loadSt    = useState(true);  var loading=loadSt[0],setLoading=loadSt[1];
+    var localSt   = useState(false); var localMode=localSt[0],setLocalMode=localSt[1];
+    var syncSt    = useState('idle');var syncStatus=syncSt[0],setSyncStatus=syncSt[1];
+    var tabSt     = useState('tw');  var tab=tabSt[0],setTab=tabSt[1];
+    var errSt     = useState('');    var connErr=errSt[0],setConnErr=errSt[1];
+
+    var weeks = Array.from(new Set(recs.map(function(r){return r.week;}))).sort(function(a,b){return wNum(b)-wNum(a);});
+
+    var cwSt = useState(function(){
+      var d=loadLocal()||SEED;
+      var ws=Array.from(new Set(d.map(function(r){return r.week;}))).sort(function(a,b){return wNum(b)-wNum(a);});
+      return ws[0]||'W25';
+    });
+    var curWeek=cwSt[0],setCurWeek=cwSt[1];
+
+    // Initial load from Sheets
+    useEffect(function() {
+      var cancelled = false;
+      db.load()
+        .then(function(rows) {
+          if (cancelled) return;
+          setRecs(rows.length ? rows : (loadLocal()||SEED));
+        })
+        .catch(function(err) {
+          if (cancelled) return;
+          var msg = err.message || String(err);
+          console.warn('Sheets load failed:', msg);
+          setConnErr(msg);
+          setLocalMode(true);
+          setSyncStatus('local');
+          setRecs(loadLocal()||SEED);
+        })
+        .finally(function() { if (!cancelled) setLoading(false); });
+      return function() { cancelled = true; };
+    }, []);
+
+    // Keep localStorage in sync as a backup
+    useEffect(function() {
+      if (!loading && recs.length) saveLocal(recs.map(cleanRec));
+    }, [recs, loading]);
+
+    function syncOp(operation) {
+      if (localMode) return;
+      setSyncStatus('syncing');
+      operation()
+        .then(function() {
+          setSyncStatus('saved');
+          setTimeout(function() { setSyncStatus(function(s){return s==='saved'?'idle':s;}); }, 2500);
+        })
+        .catch(function(err) {
+          console.warn('Sheets sync failed:', err.message||err);
+          setSyncStatus('local');
+          setLocalMode(true);
+        });
+    }
+
+    function handleRefresh() {
+      setLoading(true);
+      db.load()
+        .then(function(rows) { setRecs(rows.length?rows:(loadLocal()||SEED)); setLocalMode(false); setSyncStatus('idle'); })
+        .catch(function(err) { console.warn('Refresh failed:', err.message||err); })
+        .finally(function() { setLoading(false); });
+    }
+
+    function onStatus(id, next) {
+      var updated = null;
+      setRecs(function(prev) {
+        return prev.map(function(r) {
+          if (r.id===id) { updated=Object.assign({},r,{status:next}); return updated; }
+          return r;
+        });
+      });
+      if (updated) syncOp(function(){ return db.update(updated); });
+    }
+
+    function onResult(id, result) {
+      var updated = null;
+      setRecs(function(prev) {
+        return prev.map(function(r) {
+          if (r.id===id) { updated=Object.assign({},r,{result:result}); return updated; }
+          return r;
+        });
+      });
+      if (updated) syncOp(function(){ return db.update(updated); });
+    }
+
+    function onDelete(id) {
+      setRecs(function(prev){return prev.filter(function(r){return r.id!==id;});});
+      syncOp(function(){ return db.remove(id); });
+    }
+
+    function onAdd(item) {
+      var rec = { id:uid(), week:item.week, action:item.action, type:item.type,
+                  owner:item.owner, status:'Pending', result:'', createdAt:new Date().toISOString().slice(0,10) };
+      setRecs(function(prev){return prev.concat([rec]);});
+      if (wNum(item.week) > wNum(curWeek)) setCurWeek(item.week);
+      syncOp(function(){ return db.add(rec); });
+    }
+
+    function onImport(items, week) {
+      var newRecs = items.map(function(item) {
+        return { id:uid(), week:week, action:item.action, type:item.type,
+                 owner:item.owner, status:'Pending', result:'', createdAt:new Date().toISOString().slice(0,10) };
+      });
+      setRecs(function(prev){return prev.concat(newRecs);});
+      if (wNum(week) > wNum(curWeek)) setCurWeek(week);
+      if (!localMode) {
+        setSyncStatus('syncing');
+        var chain = Promise.resolve();
+        newRecs.forEach(function(r){ chain = chain.then(function(){ return db.add(r); }); });
+        chain
+          .then(function(){ setSyncStatus('saved'); setTimeout(function(){setSyncStatus(function(s){return s==='saved'?'idle':s;});},2500); })
+          .catch(function(err){ console.warn('Import sync failed:',err.message||err); setSyncStatus('local'); setLocalMode(true); });
+      }
+    }
+
+    var shared = { recs:recs, weeks:weeks, onStatus:onStatus, onResult:onResult, onDelete:onDelete, onAdd:onAdd, onImport:onImport };
+
+    var localBanner = localMode
+      ? html`<div className="local-banner" style=${{flexDirection:'column',alignItems:'flex-start',gap:4}}>
+          <span>⚠ Running in local mode — changes are not shared with your team.</span>
+          ${connErr ? html`<span style=${{fontFamily:'monospace',fontSize:12,opacity:.8,wordBreak:'break-all'}}>${connErr}</span>` : null}
+        </div>`
+      : null;
+
+    var content = loading
+      ? html`<div className="loading-screen">Loading recommendations…</div>`
+      : tab==='tw'
+        ? html`<${ThisWeekTab} ...${shared} curWeek=${curWeek} setCurWeek=${setCurWeek} />`
+        : html`<${AllRecsTab}  ...${shared} />`;
+
+    return html`<div>
+      <header className="hdr">
+        <span className="hdr-logo">Anka Marketing Team</span>
+        <div className="hdr-sep"></div>
+        <span className="hdr-sub">Recommendation Tracker</span>
+        <div className="hdr-right">
+          <${SyncBadge} status=${syncStatus} />
+          <button className="btn-refresh" onClick=${handleRefresh}>↻ Refresh</button>
+        </div>
+      </header>
+      ${localBanner}
+      <nav className="tab-bar">
+        <button className=${'tab-btn'+(tab==='tw'?' active':'')} onClick=${function(){setTab('tw');}}>This Week</button>
+        <button className=${'tab-btn'+(tab==='ar'?' active':'')} onClick=${function(){setTab('ar');}}>All Recommendations</button>
+      </nav>
+      <main className="main">${content}</main>
+    </div>`;
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(html`<${App} />`);
+}());
+</script>
+</body>
+</html>
