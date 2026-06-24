@@ -389,9 +389,9 @@ e<script>
       var timer = setTimeout(function() {
         if (!settled) {
           cleanup();
-          reject(new Error('Request timed out after 15s — check Apps Script URL'));
+          reject(new Error('Request timed out after 60s — Apps Script may be slow to start. Try refreshing.'));
         }
-      }, 15000);
+      }, 60000);
 
       window[cbName] = function(data) {
         clearTimeout(timer);
@@ -969,7 +969,8 @@ e<script>
       db.load()
         .then(function(rows) {
           if (cancelled) return;
-          setRecs(rows.length ? rows : (loadLocal()||SEED));
+          // If sheet responded (even empty), use sheet data only — don't mix in seed
+          setRecs(rows.length ? rows : []);
         })
         .catch(function(err) {
           if (cancelled) return;
