@@ -373,46 +373,29 @@ e<script>
 
   // ── Apps Script backend (JSONP — bypasses CORS entirely) ────────
   // JSONP loads the response as a <script> tag, so no CORS headers are needed.
-  // Works from localhost, file://, or any origin.
+  // Uses fetch — the non-Workspace Apps Script URL returns Access-Control-Allow-Origin: *
+  // so this works from any HTTPS origin (GitHub Pages, Netlify, etc.).
   function gasRequest(params) {
-    return new Promise(function(resolve, reject) {
-      var cbName = '_gas_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
-      var script = document.createElement('script');
-      var settled = false;
-
-      function cleanup() {
-        settled = true;
-        delete window[cbName];
-        if (script.parentNode) script.parentNode.removeChild(script);
-      }
-
-      var timer = setTimeout(function() {
-        if (!settled) {
-          cleanup();
-          reject(new Error('Request timed out after 60s — Apps Script may be slow to start. Try refreshing.'));
-        }
-      }, 60000);
-
-      window[cbName] = function(data) {
-        clearTimeout(timer);
-        cleanup();
-        if (data && data.error) reject(new Error('Script error: ' + data.error));
-        else resolve(data);
-      };
-
-      script.onerror = function() {
-        clearTimeout(timer);
-        cleanup();
-        reject(new Error('Could not load Apps Script URL — check CONFIG.WEB_APP_URL'));
-      };
-
-      params.callback = cbName;
-      var qs = Object.keys(params).map(function(k) {
-        return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
-      }).join('&');
-      script.src = CONFIG.WEB_APP_URL + '?' + qs;
-      document.head.appendChild(script);
-    });
+    var qs = Object.keys(params).map(function(k) {
+      return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+    }).join('&');
+    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = controller ? setTimeout(function() { controller.abort(); }, 60000) : null;
+    return fetch(CONFIG.WEB_APP_URL + '?' + qs, controller ? { signal: controller.signal } : {})
+      .then(function(res) {
+        if (timer) clearTimeout(timer);
+        if (!res.ok) throw new Error('HTTP ' + res.status + ' from Apps Script');
+        return res.json();
+      })
+      .then(function(data) {
+        if (data && data.error) throw new Error('Script error: ' + data.error);
+        return data;
+      })
+      .catch(function(err) {
+        if (timer) clearTimeout(timer);
+        if (err.name === 'AbortError') throw new Error('Request timed out after 60s — try refreshing');
+        throw err;
+      });
   }
 
   function gasLoad()        { return gasRequest({ action: 'load' }); }
