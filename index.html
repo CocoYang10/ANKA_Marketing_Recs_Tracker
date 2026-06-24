@@ -997,25 +997,19 @@ e<script>
     }
 
     function onStatus(id, next) {
-      var updated = null;
-      setRecs(function(prev) {
-        return prev.map(function(r) {
-          if (r.id===id) { updated=Object.assign({},r,{status:next}); return updated; }
-          return r;
-        });
-      });
-      if (updated) syncOp(function(){ return db.update(updated); });
+      var current = recs.find(function(r) { return r.id === id; });
+      if (!current) return;
+      var updated = Object.assign({}, current, { status: next });
+      setRecs(function(prev) { return prev.map(function(r) { return r.id===id ? updated : r; }); });
+      syncOp(function(){ return db.update(updated); });
     }
 
     function onResult(id, result) {
-      var updated = null;
-      setRecs(function(prev) {
-        return prev.map(function(r) {
-          if (r.id===id) { updated=Object.assign({},r,{result:result}); return updated; }
-          return r;
-        });
-      });
-      if (updated) syncOp(function(){ return db.update(updated); });
+      var current = recs.find(function(r) { return r.id === id; });
+      if (!current) return;
+      var updated = Object.assign({}, current, { result: result });
+      setRecs(function(prev) { return prev.map(function(r) { return r.id===id ? updated : r; }); });
+      syncOp(function(){ return db.update(updated); });
     }
 
     function onDelete(id) {
